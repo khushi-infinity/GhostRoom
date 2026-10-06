@@ -24,7 +24,8 @@ const mimeTypes: Record<string, string> = {
 }
 
 function serveStatic(request: IncomingMessage, response: ServerResponse): boolean {
-  if (request.method !== 'GET' || !existsSync(distDir)) return false
+  if (request.method !== 'GET' && request.method !== 'HEAD') return false
+  if (!existsSync(distDir)) return false
   const pathname = new URL(request.url || '/', 'http://localhost').pathname
   const filePath = resolve(distDir, pathname.replace(/^\/+/, ''))
   if (filePath.startsWith(distDir) && existsSync(filePath) && statSync(filePath).isFile()) {
@@ -33,13 +34,15 @@ function serveStatic(request: IncomingMessage, response: ServerResponse): boolea
       'Content-Type': mimeTypes[ext] || 'application/octet-stream',
       'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
     })
-    createReadStream(filePath).pipe(response)
+    if (request.method === 'HEAD') response.end()
+    else createReadStream(filePath).pipe(response)
     return true
   }
   const indexPath = join(distDir, 'index.html')
   if (existsSync(indexPath)) {
     response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' })
-    createReadStream(indexPath).pipe(response)
+    if (request.method === 'HEAD') response.end()
+    else createReadStream(indexPath).pipe(response)
     return true
   }
   return false
@@ -89,7 +92,7 @@ export function createApp(config: AIConfig, fetchImpl?: typeof fetch, rooms?: Ro
     if (request.method === 'POST' && !originAllowed) {
       json(response, 403, { error: { code: 'ORIGIN_DENIED', message: 'Use the GhostRoom app to make this request.' } }); return
     }
-    if (request.method === 'GET' && !request.url?.startsWith('/api')) {
+    if ((request.method === 'GET' || request.method === 'HEAD') && !request.url?.startsWith('/api')) {
       if (serveStatic(request, response)) return
     }
     if (request.url === '/api/health' && request.method === 'GET') {
