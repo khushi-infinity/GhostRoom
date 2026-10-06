@@ -50,10 +50,15 @@
   5. Shared knowledge graph generated from discussion ("We should launch GhostRoom for startup teams" vs "Research teams have more complex discussions") -> 5 nodes/edges generated and synchronized across both sessions.
   6. Graph node detail panel verified with message provenance and source citations.
   7. Refresh test verified both sessions retain their identities, room membership, chat history, and graph state.
-- All 17 backend unit tests, Playwright multiplayer test, OxLint (0 errors), and production TypeScript/Vite build passed.
+- Deployed production service to Render via Render CLI (`render services create`):
+  - Service ID: `srv-db2hnh97lnhs73f0gec0`
+  - Live Public URL: https://ghostroom-gl54.onrender.com
+  - Integrated SPA static asset hosting from compiled `dist/` directly inside the Node server.
+  - Successfully verified live endpoints (`/api/health`, `/api/rooms/create`, `/api/rooms/join`, and frontend landing UI).
 
 ## CURRENT
-- Multiplayer dynamic private rooms, two-user chat, real participant rosters, and synchronized AI knowledge graph are fully working and verified.
+- GhostRoom is LIVE and running in production at https://ghostroom-gl54.onrender.com.
+- Multiplayer dynamic private rooms, two-user chat, real participant rosters, and synchronized AI knowledge graph are fully working and verified both locally and in production.
 
 ## NEXT
 - Voice room integration.
