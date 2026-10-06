@@ -1,3 +1,6 @@
+import { createReadStream, existsSync, statSync } from 'node:fs'
+import { extname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AIConfig } from './analyze.ts'
@@ -6,6 +9,41 @@ import { AnalysisError, validateRequest } from './graph.ts'
 import { createRoomSchema, joinRoomSchema, roomCodeSchema } from '../shared/rooms.ts'
 import { Rooms } from './rooms.ts'
 import { RoomGraphs } from './roomGraph.ts'
+
+const distDir = fileURLToPath(new URL('../dist', import.meta.url))
+const mimeTypes: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+}
+
+function serveStatic(request: IncomingMessage, response: ServerResponse): boolean {
+  if (request.method !== 'GET' || !existsSync(distDir)) return false
+  const pathname = new URL(request.url || '/', 'http://localhost').pathname
+  const filePath = resolve(distDir, pathname.replace(/^\/+/, ''))
+  if (filePath.startsWith(distDir) && existsSync(filePath) && statSync(filePath).isFile()) {
+    const ext = extname(filePath).toLowerCase()
+    response.writeHead(200, {
+      'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
+    })
+    createReadStream(filePath).pipe(response)
+    return true
+  }
+  const indexPath = join(distDir, 'index.html')
+  if (existsSync(indexPath)) {
+    response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' })
+    createReadStream(indexPath).pipe(response)
+    return true
+  }
+  return false
+}
 
 const MAX_BODY = 1_000_000
 function json(response: ServerResponse, status: number, value: unknown) {
@@ -42,11 +80,17 @@ export function createApp(config: AIConfig, fetchImpl?: typeof fetch, rooms?: Ro
     // Browser mutations are same-origin. Cookies never authenticate a supplied UID.
     let originAllowed = true
     if (request.headers.origin) {
-      try { originAllowed = publicOrigin ? request.headers.origin === publicOrigin : new URL(request.headers.origin).host === request.headers.host }
+      try { 
+        const host = request.headers['x-forwarded-host'] || request.headers.host;
+        originAllowed = publicOrigin ? request.headers.origin === publicOrigin : new URL(request.headers.origin).host === host 
+      }
       catch { originAllowed = false }
     }
     if (request.method === 'POST' && !originAllowed) {
       json(response, 403, { error: { code: 'ORIGIN_DENIED', message: 'Use the GhostRoom app to make this request.' } }); return
+    }
+    if (request.method === 'GET' && !request.url?.startsWith('/api')) {
+      if (serveStatic(request, response)) return
     }
     if (request.url === '/api/health' && request.method === 'GET') {
       json(response, 200, { ok: true, aiConfigured: Boolean(config.apiKey && config.baseUrl && config.model) }); return

@@ -37,3 +37,7 @@ server/.env
 
 # Durable server sessions and graph snapshots (private)
 server/data/
+
+# Test artifacts
+test-results/
+playwright-report/

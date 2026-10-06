@@ -71,8 +71,7 @@ export class Rooms {
   async join(request: IncomingMessage, response: ServerResponse, displayName: string, code: string) {
     const room = await this.resolve(code)
     const identity = await this.ensureIdentity(request, response, displayName)
-    const group = await this.chat.getGroup(room.guid, identity.uid)
-    if (!group.hasJoined) await this.chat.addMember(room.guid, identity.uid)
+    await this.chat.addMember(room.guid, identity.uid)
     const confirmed = await this.chat.getGroup(room.guid, identity.uid)
     if (!confirmed.hasJoined) throw new AnalysisError(502, 'MEMBERSHIP_FAILED', 'Could not confirm your membership. Please retry.')
     if (!identity.rooms.includes(room.guid)) identity.rooms.push(room.guid)

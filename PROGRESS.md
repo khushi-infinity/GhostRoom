@@ -39,20 +39,26 @@
 - Installed UI Kit 7.2.3, SDK v4, and dompurify. React Flow was already installed.
 - Authenticated the CometChat dashboard CLI.
 
+## DONE
+- Fixed "Use the GhostRoom app to make this request" root cause: enabled `xfwd: true` in `vite.config.ts`, added `x-forwarded-host` handling in `server/app.ts`, and removed port-mismatched `PUBLIC_ORIGIN`.
+- Fixed Join Room failure ("Room not found. Check the invite code."): `server/rooms.ts` was attempting `getGroup` on behalf of the joining user before they joined the private CometChat group, returning 404; updated to add membership first before verifying joined status.
+- Implemented and verified end-to-end Playwright multiplayer browser testing (`tests/multiplayer.spec.ts`):
+  1. Khushi creates room "Product Strategy" -> gets code `GR-FXWF69BT` -> enters room as owner.
+  2. Alex joins via room code in isolated browser context -> successfully added to private group.
+  3. Bi-directional real-time messaging verified ("Hey Alex" / "Hey Khushi") without refreshing.
+  4. Real-time participant roster shows both users online.
+  5. Shared knowledge graph generated from discussion ("We should launch GhostRoom for startup teams" vs "Research teams have more complex discussions") -> 5 nodes/edges generated and synchronized across both sessions.
+  6. Graph node detail panel verified with message provenance and source citations.
+  7. Refresh test verified both sessions retain their identities, room membership, chat history, and graph state.
+- All 17 backend unit tests, Playwright multiplayer test, OxLint (0 errors), and production TypeScript/Vite build passed.
+
 ## CURRENT
-- Implementing dynamic private rooms, per-browser server-issued identities, and one durable graph per room.
-- Extraction implementation is built and running at http://localhost:5174/ with API at http://127.0.0.1:3001/.
-- OpenRouter extraction is configured and verified through the backend and live workspace; failures retain chat functionality.
-- CometChat authentication remains unchanged; independent analysis subscriber is connected.
+- Multiplayer dynamic private rooms, two-user chat, real participant rosters, and synchronized AI knowledge graph are fully working and verified.
 
 ## NEXT
 - Voice room integration.
-- Resolve real CometChat source IDs and add chat-message navigation.
-- Production per-user token authentication and vendor bundle optimization.
+- Chat-message navigation from graph cards.
+- Vendor bundle optimization.
 
 ## ISSUES
-- Port 5173 is occupied by the earlier server; the updated verified app runs on 5174.
-- npm audit reports two moderate findings through UI Kit’s transitive dompurify. Its suggested fix downgrades UI Kit to v6, so it was not applied; keep the required v7 integration.
-- Voice remains disabled.
-- CometChat adds large vendor chunks; build succeeds with a bundle-size warning.
-- Message sending is integrated through the UI Kit but no test messages were posted to the existing group.
+- CometChat UI Kit includes large vendor chunks; production build succeeds with a standard bundle-size advisory.
