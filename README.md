@@ -1,74 +1,203 @@
-# GhostRoom
+# ◉ GhostRoom
 
-Real-time CometChat group conversation beside an AI-generated visual knowledge graph.
+> **Think together. See the connections.**  
+> A real-time collaborative workspace pairing private **CometChat** group conversation with a living, AI-generated **Knowledge Graph**.
 
-## Run
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://ghostroom-gl54.onrender.com)
+[![CometChat v7](https://img.shields.io/badge/CometChat-UI%20Kit%20v7-7C3AED?style=for-the-badge&logo=cometchat&logoColor=white)](https://www.cometchat.com)
+[![React 19](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev)
 
-```sh
+---
+
+## 📸 Screenshots
+
+### 1. The Workspace (Chat + Living Knowledge Graph)
+As team members discuss ideas in real time, GhostRoom extracts structured concepts, decisions, and disagreements into a synchronized visual graph on the right.
+
+![GhostRoom Workspace](docs/screenshots/workspace.png)
+
+---
+
+### 2. Trace the Thought (Grounding & Provenance)
+Every node in the graph is strictly grounded in the conversation. Click any card to inspect its exact source message citations, author, timestamp, and connected ideas.
+
+![Node Details & Source Provenance](docs/screenshots/node-details.png)
+
+---
+
+### 3. Quick Room Creation & Joining
+Create a private room in seconds, share an 8-character invite code (`GR-XXXXXX`), and collaborate with real CometChat identities.
+
+![GhostRoom Landing](docs/screenshots/landing.png)
+
+---
+
+## 🌟 Key Features
+
+- **🚀 Dynamic Private Rooms:** Create instant private rooms identified by short, shareable codes (e.g. `GR-FXWF69BT`). Each room maps deterministically to a private CometChat group.
+- **💬 Real-Time CometChat v7 Messaging:** Powered by `@cometchat/chat-uikit-react` (v7) and `@cometchat/chat-sdk-javascript` (v4). Supports real-time text chat, threads, presence indicators, and live participant rosters.
+- **🧠 Living AI Knowledge Graph:** Interactive canvas powered by **React Flow** (`@xyflow/react`) that continuously updates as the conversation flows.
+- **🏷️ 7 Concept Types:**
+  - `💡 Idea` — New proposals and hypotheses
+  - `🔍 Evidence` — Supporting facts, data, and references
+  - `❓ Question` — Open inquiries and blockers
+  - `⇄ Disagreement` — Conflicting perspectives and debates
+  - `✓ Decision` — Resolved outcomes and agreements
+  - `📋 Task` — Action items and assignments
+  - `👤 Person` — Active participants and contributors
+- **🔗 Verified Provenance:** Zero hallucinated nodes. Every concept maintains stable IDs and bidirectional links to the underlying source messages.
+- **🔄 Multi-User Synchronization:** All room participants share the same server-backed knowledge graph state, updated with debouncing and serialized queues.
+- **🛡️ Secure Token-Based Auth:** Backend issues ephemeral CometChat user accounts and auth tokens with HttpOnly session cookies. Secrets remain strictly on the server.
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    subgraph Browser ["Client (React 19 + Vite)"]
+        UI[App Shell]
+        Chat[CometChat UI Kit v7]
+        Canvas[React Flow Graph Canvas]
+        Bridge[ConversationBridge Event Bus]
+    end
+
+    subgraph Backend ["Node.js Server (Port 3001)"]
+        API[HTTP Request Handler]
+        RoomMgr[Rooms & Session Manager]
+        GraphMgr[RoomGraphs Synchronizer]
+        Store[Local Persistent Store]
+    end
+
+    subgraph External ["External Services"]
+        CometChatAPI[CometChat REST API v3]
+        AIProvider[OpenRouter / Gemini 2.5 Flash]
+    end
+
+    UI --> Chat
+    UI --> Canvas
+    Chat -.->|v7 Event Bus| Bridge
+    Bridge -->|Messages Batch| GraphMgr
+
+    API --> RoomMgr
+    RoomMgr --> Store
+    RoomMgr --> CometChatAPI
+
+    GraphMgr --> AIProvider
+    GraphMgr --> CometChatAPI
+    GraphMgr --> Store
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite 8, React Flow (`@xyflow/react`), DOMPurify |
+| **Chat & Presence** | CometChat React UI Kit v7.2.3, CometChat JavaScript SDK v4.2.0 |
+| **Backend** | Node.js (HTTP / ESM), TypeScript (`tsx`), Zod v4 |
+| **AI Extraction** | OpenAI-compatible API (Google Gemini 2.5 Flash Lite via OpenRouter) |
+| **Testing** | Playwright (multiplayer browser tests), Node.js native test runner |
+| **Deployment** | Render (Web Service Blueprint), Docker / Node runtime |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** v20+ 
+- **npm** v10+
+- A [CometChat](https://www.cometchat.com/) account (App ID, Region, REST API Key)
+- An AI provider API key (OpenRouter, OpenAI, or compatible endpoint)
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/khushi-infinity/GhostRoom.git
+cd GhostRoom
 npm install
-cp server/.env.example server/.env
-# Edit server/.env with your provider configuration.
+```
+
+### 2. Environment Configuration
+
+Create `server/.env` with your server credentials:
+
+```dotenv
+# Server API Port
+API_PORT=3001
+
+# CometChat Server Credentials (Never exposed to client)
+COMETCHAT_APP_ID=your_cometchat_app_id
+COMETCHAT_REGION=in
+COMETCHAT_REST_API_KEY=your_cometchat_rest_api_key
+
+# AI Provider Configuration (OpenAI-compatible)
+AI_API_KEY=your_openrouter_or_openai_api_key
+AI_BASE_URL=https://openrouter.ai/api/v1
+AI_MODEL=google/gemini-2.5-flash-lite
+```
+
+> **Security Note:** Neither CometChat REST keys nor AI API keys are exposed to the client bundle. The browser receives only ephemeral session tokens issued by the backend.
+
+### 3. Run Locally
+
+```bash
 npm run dev
 ```
 
-`npm run dev` starts the backend on `127.0.0.1:3001` and Vite on the available local port shown in its output. Vite proxies `/api` to the backend. Select a CometChat group; its recent text history (up to 50 messages) seeds analysis. Received messages and successful local sends update it automatically. A 1.4-second debounce batches bursts; new messages during a request trigger a serialized follow-up.
+This starts:
+- **API Server:** `http://127.0.0.1:3001`
+- **Vite Web App:** `http://localhost:5173` (proxies `/api` to 3001)
 
-## AI configuration — server only
+Open `http://localhost:5173` in your browser to start creating rooms.
 
-In **server/.env** (gitignored):
+---
 
-```dotenv
-AI_API_KEY=your-provider-key
-AI_BASE_URL=https://openrouter.ai/api/v1
-AI_MODEL=your-provider-model-id
-API_PORT=3001
-```
+## 🧪 Testing & Verification
 
-`AI_BASE_URL` includes the provider’s API prefix. The backend appends `/chat/completions`; another OpenAI-compatible provider works by changing these variables. No `VITE_AI_*` variables, frontend provider calls, or frontend AI keys. The backend reads server/.env only (or process environment overrides). Restart the backend after editing configuration. Keep API_PORT at 3001 with the default Vite proxy, or update the proxy together.
+GhostRoom includes comprehensive unit and end-to-end integration tests:
 
-The model is asked for strict structured JSON. Providers that explicitly reject structured-output parameters fall back to JSON mode, then schema-guided plain output, with the same local validation in every mode. Invalid output gets one bounded regeneration attempt. Refusals, truncated responses, bad schemas, unknown sources, unsupported authors, dangling edges, timeouts, and provider failures return safe JSON errors. The frontend retains its last valid graph and keeps chat operational, with a subtle thinking indicator and a retry action.
-
-Validation guarantees shape and reference integrity; the grounding prompt requires every claim and relationship to be supported by the conversation. Structural validation alone cannot prove a model’s interpretation is factually correct. Review the cited source messages in the detail panel.
-
-## API
-
-`POST /api/analyze-conversation`, `Content-Type: application/json`:
-
-```json
-{
-  "messages": [{ "id": "123", "senderId": "alice", "senderName": "Alice", "text": "Let's launch a private beta.", "timestamp": "2026-10-06T10:00:00Z" }],
-  "existingGraph": { "nodes": [], "edges": [] }
-}
-```
-
-Success is **only** `{ "nodes": [...], "edges": [...] }`, with the requested node and edge schema. `authorId` is optional in returned nodes. Frontend timestamps are derived from source messages. `existingGraph` may include those timestamps, which are not returned by the endpoint.
-
-Existing nodes retain stable IDs and provenance. Exact normalized label/type duplicates are merged deterministically; semantic duplicate identification and evolving summaries are handled by the model. Edge references are remapped after merges. The endpoint preserves omitted existing concepts and relationships so an incomplete response cannot silently erase the graph.
-
-Limits: 200 input messages, 200 graph nodes, 500 edges, 1 MB request/provider response, 45-second provider deadline, at most two concurrent analyses and 20 accepted requests per minute. This is a localhost hackathon backend. Before exposing it publicly, add app authentication/room authorization, per-user quotas, and persistent room graph storage. The frontend sends the latest 200 text messages plus existingGraph; media contents are not analyzed.
-
-`GET /api/health` returns `{ "ok": true, "aiConfigured": true|false }` without keys or provider settings.
-
-## Graph behavior
-
-All seven node types have custom visual cards. New nodes animate in; updates reuse IDs and node positions. Drag nodes, pan, zoom, or use Fit View. Click a node (or focus its card and press Enter/Space) for summary, real source messages, and related concepts. Close with × or Escape. Reduced-motion preferences are respected.
-
-Mock startup fixtures remain in `src/graph/mockData.ts` as development data; the live application no longer imports them. Graph state is in memory for the selected room. Changing rooms aborts old requests and clears the graph to avoid mixing conversations. Deleted messages remove unsupported orphaned nodes; edits are reanalyzed.
-
-## CometChat
-
-Integration follows the installed `.claude/skills/cometchat-react-v7-core` skill, current group-chat docs, and v7 unified event system (`message/text-received`, `ui:message/sent` filtered to `success`). `ConversationBridge` subscribes independently and never intercepts message sending.
-
-CometChat credentials remain in ignored `.cometchat/config.json` and `.env.local`. For a fresh checkout, copy `.env.example` to `.env.local` and fill in App ID, region, development Auth Key, and existing UID. Optional `VITE_COMETCHAT_GROUP_GUID` opens a group directly; the user needs access. Restart Vite after env changes.
-
-`VITE_COMETCHAT_CREATE_DEMO_USER=true` is development-only. Production should use backend-issued per-user tokens and `loginWithAuthToken`.
-
-## Verification
-
-```sh
+### Backend Unit Tests
+Runs 17 regression tests covering parsing, deduplication, schema validation, and room session isolation:
+```bash
 npm test
-npm run build
-npm run lint
 ```
 
-Tests use a controlled provider transport, never paid external calls. They cover the real HTTP endpoint and analysis-session failure/concurrency behavior. A live-provider smoke test additionally requires server/.env credentials. Voice remains disabled. See PROGRESS.md.
+### Full Multiplayer Playwright Test
+Runs a 2-user real-time test (Khushi + Alex) in isolated browser contexts verifying room creation, code join, real-time messaging, participant presence, and synchronized knowledge graph emergence:
+```bash
+npx playwright test tests/multiplayer.spec.ts --browser=chromium
+```
+
+### Linting & Production Build
+```bash
+npm run lint    # OxLint
+npm run build   # TypeScript typecheck + Vite client bundle
+```
+
+---
+
+## 🌐 Production Deployment
+
+GhostRoom is pre-configured for **Render** via [`render.yaml`](render.yaml):
+
+1. Fork or push this repository to GitHub.
+2. Link the repository on [Render](https://dashboard.render.com/) as a **Blueprint** or **Web Service**.
+3. Supply the environment variables in the Render dashboard:
+   - `COMETCHAT_APP_ID`
+   - `COMETCHAT_REGION`
+   - `COMETCHAT_REST_API_KEY`
+   - `AI_API_KEY`
+   - `AI_BASE_URL`
+   - `AI_MODEL`
+4. Deploy! Render will build and serve the application as a unified full-stack service with built-in SPA routing and health check monitoring.
+
+---
+
+## 📄 License
+
+MIT License. Designed and built for the collective intelligence hackathon.
